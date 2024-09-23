@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circle Animation with Images</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #000000; }
+        canvas { border: 1px solid #ccc; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <canvas id="circleCanvas" width="300" height="300"></canvas>
+    <script>
+        const canvas = document.getElementById('circleCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = 150;
+        const centerY = 150;
+        const radius = 145;
+        const gravity = 0.1; // Gravity constant
+
+        let bouncingCircles = [{ x: centerX, y: centerY, dx: 2, dy: 2, radius: 10 }];
+
+        // Load images
+        const peterGriffinImg = new Image();
+        peterGriffinImg.src = 'https://w7.pngwing.com/pngs/144/956/png-transparent-peter-griffin-stewie-griffin-lois-griffin-meg-griffin-mickey-mcfinnegan-griffin-miscellaneous-mammal-face.png';
+
+        const friesImg = new Image();
+        friesImg.src = 'https://media.istockphoto.com/id/1414650948/photo/french-fries-in-a-white-paper-box-isolated-on-white.jpg?s=1024x1024&w=is&k=20&c=_ERG0pMGU9vHs73MbETiUr7W4IJwOnY1PKRTclX-TdU=';
+
+        // Wait for images to load before starting the animation
+        Promise.all([peterGriffinImg.decode(), friesImg.decode()]).then(() => {
+            function draw(time) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw the containing circle
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'blue';
+                ctx.stroke();
+
+                // Orbiting Peter Griffin image
+                const angle = (time / 1000) % (2 * Math.PI);
+                const orbitX = centerX + radius * Math.cos(angle);
+                const orbitY = centerY + radius * Math.sin(angle);
+
+                // Draw Peter Griffin image
+                const peterSize = 40; // Set the size of Peter Griffin image
+                ctx.drawImage(peterGriffinImg, orbitX - peterSize / 2, orbitY - peterSize / 2, peterSize, peterSize);
+
+                // Bouncing Fries images
+                let newCircles = [];
+                bouncingCircles.forEach(circle => {
+                    // Apply gravity to vertical velocity
+                    circle.dy += gravity;
+
+                    // Move the circle
+                    circle.x += circle.dx;
+                    circle.y += circle.dy;
+
+                    // Check if the circle is outside the containing circle
+                    const distanceFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+                    if (distanceFromCenter + circle.radius > radius) {
+                        // Calculate the normal vector
+                        const nx = (circle.x - centerX) / distanceFromCenter;
+                        const ny = (circle.y - centerY) / distanceFromCenter;
+                        
+                        // Calculate the dot product of velocity and normal
+                        const dotProduct = circle.dx * nx + circle.dy * ny;
+                        
+                        // Calculate the reflection
+                        circle.dx = circle.dx - 2 * dotProduct * nx;
+                        circle.dy = circle.dy - 2 * dotProduct * ny;
+                        
+                        // Move the circle back inside the containing circle
+                        circle.x = centerX + (radius - circle.radius) * nx;
+                        circle.y = centerY + (radius - circle.radius) * ny;
+                    }
+
+                    // Check collision with Peter Griffin
+                    const distanceToOrbit = Math.sqrt((circle.x - orbitX) ** 2 + (circle.y - orbitY) ** 2);
+                    if (distanceToOrbit < circle.radius + peterSize / 2) {
+                        // Duplicate and respawn in the middle
+                        newCircles.push({
+                            x: centerX,
+                            y: centerY,
+                            dx: Math.random() * 4 - 2,
+                            dy: Math.random() * 4 - 2,
+                            radius: 10
+                        });
+                        circle.x = centerX;
+                        circle.y = centerY;
+                        circle.dx = Math.random() * 4 - 2;
+                        circle.dy = Math.random() * 4 - 2;
+                    }
+
+                    // Draw Fries image
+                    const friesSize = 20; // Set the size of Fries image
+                    ctx.drawImage(friesImg, circle.x - friesSize / 2, circle.y - friesSize / 2, friesSize, friesSize);
+                });
+
+                // Add new circles
+                bouncingCircles = bouncingCircles.concat(newCircles);
+
+                requestAnimationFrame(draw);
+            }
+
+            requestAnimationFrame(draw);
+        });
+    </script>
+</body>
+</html>
